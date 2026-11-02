@@ -163,6 +163,9 @@ footer{background:#030A14;border-top:1px solid var(--border);padding:56px 20px 3
   section{padding:64px 20px}
 }
 @media(prefers-reduced-motion:reduce){.led,.flow{animation:none}html{scroll-behavior:auto}}
+/* section transition veil */
+#pageVeil{position:fixed;inset:0;z-index:90;opacity:0;pointer-events:none;background:var(--bg);transition:opacity .4s ease,background-color .35s ease}
+#pageVeil.on{opacity:1;pointer-events:auto}
 </style>
 </head>
 <body>
@@ -407,6 +410,44 @@ document.getElementById('quoteForm').addEventListener('submit',function(e){
   // TODO: send the form data to a real backend here (fetch to Formspree or your endpoint) before launch.
   if(ok){this.reset()}
 });
+/* Smooth section transitions: cover with the current background color, jump, recolor, reveal */
+(function(){
+  var veil=document.createElement('div');veil.id='pageVeil';veil.setAttribute('aria-hidden','true');document.body.appendChild(veil);
+  var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var busy=false;
+  function solidBg(el){
+    while(el&&el.nodeType===1){
+      var m=getComputedStyle(el).backgroundColor.match(/rgba?\(([^)]+)\)/);
+      if(m){var c=m[1].split(',').map(function(x){return parseFloat(x)});if(c.length<4||c[3]>0)return 'rgb('+Math.round(c[0])+','+Math.round(c[1])+','+Math.round(c[2])+')'}
+      el=el.parentElement;
+    }
+    return getComputedStyle(document.body).backgroundColor;
+  }
+  function jump(target){
+    var html=document.documentElement,prev=html.style.scrollBehavior;
+    html.style.scrollBehavior='auto';target.scrollIntoView({block:'start',behavior:'instant'});html.style.scrollBehavior=prev;
+  }
+  document.addEventListener('click',function(e){
+    if(e.defaultPrevented||e.button!==0||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey)return;
+    var a=e.target.closest&&e.target.closest('a[href^="#"]');if(!a)return;
+    var id=a.getAttribute('href').slice(1);var target=id&&document.getElementById(id);
+    if(!target||target.tagName!=='SECTION')return;
+    e.preventDefault();
+    if(history.pushState)history.pushState(null,'','#'+id);
+    if(reduce){jump(target);return}
+    if(busy)return;busy=true;
+    veil.style.backgroundColor=solidBg(a.parentElement);
+    veil.classList.add('on');
+    setTimeout(function(){
+      jump(target);
+      veil.style.backgroundColor=solidBg(target);
+      setTimeout(function(){
+        veil.classList.remove('on');
+        setTimeout(function(){busy=false},420);
+      },380);
+    },420);
+  });
+})();
 </script>
 </body>
 </html>
