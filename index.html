@@ -441,12 +441,14 @@ document.getElementById('quoteForm').addEventListener('submit',function(e){
   }
   document.addEventListener('click',function(e){
     if(e.defaultPrevented||e.button!==0||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey)return;
-    var a=e.target.closest&&e.target.closest('a[href^="#"]');if(!a)return;
-    var id=a.getAttribute('href').slice(1);var target=id&&document.getElementById(id);
+    var a=e.target.closest&&e.target.closest('a[href*="#"]');if(!a||a.target==='_blank')return;
+    var h=a.getAttribute('href'),i=h.indexOf('#'),pre=h.slice(0,i);
+    if(pre){try{var abs=new URL(pre,document.baseURI).href;if(abs!==location.href.split('#')[0]&&abs!==document.baseURI.split('#')[0])return}catch(err){return}}
+    var id=h.slice(i+1);var target=id&&document.getElementById(id);
     if(!target||target.tagName!=='SECTION')return;
     e.preventDefault();
     if(busy)return;
-    if(history.pushState)history.pushState(null,'','#'+id);
+    try{history.pushState(null,'',location.href.split('#')[0]+'#'+id)}catch(err){}
     html.style.scrollBehavior='auto';
     if(reduce){jump(target);html.style.scrollBehavior='';return}
     busy=true;
