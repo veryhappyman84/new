@@ -31,7 +31,7 @@ a{color:var(--cyan);text-decoration:none}a:hover{text-decoration:underline}
 .grad{background:linear-gradient(90deg,var(--cyan),var(--teal));-webkit-background-clip:text;background-clip:text;color:transparent}
 
 /* header */
-header{position:sticky;top:0;z-index:100;background:rgba(6,17,31,.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
+header{position:sticky;top:0;z-index:100;-webkit-transform:translateZ(0);transform:translateZ(0);transition:background-color .6s ease;background:rgba(6,17,31,.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
 .nav{max-width:1200px;margin:0 auto;padding:10px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px}
 .logo{display:block;background:#fff;border-radius:12px;padding:4px 10px;line-height:0}
 .logo img{height:44px;width:auto;display:block}
@@ -417,7 +417,7 @@ document.getElementById('quoteForm').addEventListener('submit',function(e){
 });
 /* Smooth section transitions: cover with the current background color, pause and jump, recolor, reveal */
 (function(){
-  var FADE=600,HOLD=1500;
+  var FADE=600,HOLD=1250;var hdr=document.querySelector('header');
   var veil=document.createElement('div');veil.id='pageVeil';veil.setAttribute('aria-hidden','true');document.body.appendChild(veil);
   var top=document.createElement('a');top.id='toTop';top.href='#home';top.setAttribute('aria-label','Back to top');
   top.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>';
@@ -434,6 +434,14 @@ document.getElementById('quoteForm').addEventListener('submit',function(e){
     }
     return getComputedStyle(document.body).backgroundColor;
   }
+  /* header is 82% opaque over the veil: give it the equivalent solid color while the veil is up,
+     so dropping the blur and jumping cause no repaint flash */
+  function hdrSolid(bg){
+    var c=bg.match(/[\d.]+/g).map(Number);
+    hdr.style.webkitBackdropFilter='none';hdr.style.backdropFilter='none';
+    hdr.style.backgroundColor='rgb('+Math.round(.82*6+.18*c[0])+','+Math.round(.82*17+.18*c[1])+','+Math.round(.82*31+.18*c[2])+')';
+  }
+  function hdrReset(){hdr.style.backgroundColor='';hdr.style.webkitBackdropFilter='';hdr.style.backdropFilter=''}
   function jump(target){
     var pad=parseFloat(getComputedStyle(html).scrollPaddingTop)||0;
     var y=target.id==='home'?0:Math.max(0,target.getBoundingClientRect().top+window.scrollY-pad);
@@ -455,12 +463,13 @@ document.getElementById('quoteForm').addEventListener('submit',function(e){
     veil.style.backgroundColor=solidBg(a===top?document.body:a.parentElement);
     veil.classList.add('on');
     setTimeout(function(){
+      if(hdr)hdrSolid(veil.style.backgroundColor);
       jump(target);
-      veil.style.backgroundColor=solidBg(target);
+      var to=solidBg(target);veil.style.backgroundColor=to;if(hdr)hdrSolid(to);
       setTimeout(function(){jump(target)},HOLD/2);
       setTimeout(function(){
         veil.classList.remove('on');
-        setTimeout(function(){html.style.scrollBehavior='';busy=false},FADE);
+        setTimeout(function(){if(hdr)hdrReset();html.style.scrollBehavior='';busy=false},FADE);
       },HOLD);
     },FADE);
   });
