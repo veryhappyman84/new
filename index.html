@@ -417,7 +417,7 @@ document.getElementById('quoteForm').addEventListener('submit',function(e){
 });
 /* Smooth section transitions: cover with the current background color, pause and jump, recolor, reveal */
 (function(){
-  var FADE=600,HOLD=1250;var hdr=document.querySelector('header');
+  var FADE=600,HOLD=750;var hdr=document.querySelector('header');
   var veil=document.createElement('div');veil.id='pageVeil';veil.setAttribute('aria-hidden','true');document.body.appendChild(veil);
   var top=document.createElement('a');top.id='toTop';top.href='#home';top.setAttribute('aria-label','Back to top');
   top.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>';
