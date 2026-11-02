@@ -164,8 +164,13 @@ footer{background:#030A14;border-top:1px solid var(--border);padding:56px 20px 3
 }
 @media(prefers-reduced-motion:reduce){.led,.flow{animation:none}html{scroll-behavior:auto}}
 /* section transition veil */
-#pageVeil{position:fixed;inset:0;z-index:90;opacity:0;pointer-events:none;background:var(--bg);transition:opacity .4s ease,background-color .35s ease}
+#pageVeil{position:fixed;inset:0;z-index:90;opacity:0;pointer-events:none;background:var(--bg);transition:opacity .6s ease,background-color .6s ease}
 #pageVeil.on{opacity:1;pointer-events:auto}
+#toTop{position:fixed;right:22px;bottom:22px;z-index:80;width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--amber),var(--amber-d));color:#1a1100;box-shadow:0 8px 24px rgba(255,176,32,.35);opacity:0;visibility:hidden;transform:translateY(12px);transition:opacity .35s ease,transform .35s ease,visibility .35s,box-shadow .2s}
+#toTop.show{opacity:1;visibility:visible;transform:none}
+#toTop:hover{box-shadow:0 12px 32px rgba(255,176,32,.55);transform:translateY(-2px)}
+#toTop svg{width:24px;height:24px}
+@media(max-width:600px){#toTop{right:16px;bottom:16px;width:46px;height:46px}}
 </style>
 </head>
 <body>
@@ -410,11 +415,17 @@ document.getElementById('quoteForm').addEventListener('submit',function(e){
   // TODO: send the form data to a real backend here (fetch to Formspree or your endpoint) before launch.
   if(ok){this.reset()}
 });
-/* Smooth section transitions: cover with the current background color, jump, recolor, reveal */
+/* Smooth section transitions: cover with the current background color, pause and jump, recolor, reveal */
 (function(){
+  var FADE=600,HOLD=1500;
   var veil=document.createElement('div');veil.id='pageVeil';veil.setAttribute('aria-hidden','true');document.body.appendChild(veil);
+  var top=document.createElement('a');top.id='toTop';top.href='#home';top.setAttribute('aria-label','Back to top');
+  top.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>';
+  document.body.appendChild(top);
+  function toggleTop(){top.classList.toggle('show',window.scrollY>window.innerHeight*0.6)}
+  window.addEventListener('scroll',toggleTop,{passive:true});toggleTop();
   var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var busy=false;
+  var html=document.documentElement,busy=false;
   function solidBg(el){
     while(el&&el.nodeType===1){
       var m=getComputedStyle(el).backgroundColor.match(/rgba?\(([^)]+)\)/);
@@ -424,8 +435,9 @@ document.getElementById('quoteForm').addEventListener('submit',function(e){
     return getComputedStyle(document.body).backgroundColor;
   }
   function jump(target){
-    var html=document.documentElement,prev=html.style.scrollBehavior;
-    html.style.scrollBehavior='auto';target.scrollIntoView({block:'start',behavior:'instant'});html.style.scrollBehavior=prev;
+    var pad=parseFloat(getComputedStyle(html).scrollPaddingTop)||0;
+    var y=target.id==='home'?0:Math.max(0,target.getBoundingClientRect().top+window.scrollY-pad);
+    window.scrollTo(0,y);
   }
   document.addEventListener('click',function(e){
     if(e.defaultPrevented||e.button!==0||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey)return;
@@ -433,19 +445,22 @@ document.getElementById('quoteForm').addEventListener('submit',function(e){
     var id=a.getAttribute('href').slice(1);var target=id&&document.getElementById(id);
     if(!target||target.tagName!=='SECTION')return;
     e.preventDefault();
+    if(busy)return;
     if(history.pushState)history.pushState(null,'','#'+id);
-    if(reduce){jump(target);return}
-    if(busy)return;busy=true;
-    veil.style.backgroundColor=solidBg(a.parentElement);
+    html.style.scrollBehavior='auto';
+    if(reduce){jump(target);html.style.scrollBehavior='';return}
+    busy=true;
+    veil.style.backgroundColor=solidBg(a===top?document.body:a.parentElement);
     veil.classList.add('on');
     setTimeout(function(){
       jump(target);
       veil.style.backgroundColor=solidBg(target);
+      setTimeout(function(){jump(target)},HOLD/2);
       setTimeout(function(){
         veil.classList.remove('on');
-        setTimeout(function(){busy=false},420);
-      },380);
-    },420);
+        setTimeout(function(){html.style.scrollBehavior='';busy=false},FADE);
+      },HOLD);
+    },FADE);
   });
 })();
 </script>
